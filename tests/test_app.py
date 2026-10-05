@@ -5,10 +5,51 @@ import unittest
 
 import database
 from app import app, assign_teachers_to_sessions, database_connection
+from database import initialize_database
 from werkzeug.security import check_password_hash
 
 
 class StudentHubAppTests(unittest.TestCase):
+    def test_initialize_database_bootstraps_empty_database_without_demo_records(self):
+        original_database = database.DATABASE
+        with tempfile.TemporaryDirectory() as directory:
+            database.DATABASE = os.path.join(directory, "fresh.db")
+            try:
+                initialize_database()
+                with database_connection() as connection:
+                    courses = connection.execute(
+                        "SELECT name FROM courses ORDER BY name"
+                    ).fetchall()
+                    course_sequence = connection.execute(
+                        "SELECT seq FROM sqlite_sequence WHERE name = 'courses'"
+                    ).fetchone()[0]
+                    student_count = connection.execute(
+                        "SELECT COUNT(*) FROM students"
+                    ).fetchone()[0]
+                    tables = {
+                        row["name"]
+                        for row in connection.execute(
+                            "SELECT name FROM sqlite_master WHERE type = 'table'"
+                        )
+                    }
+                self.assertEqual(
+                    {course["name"] for course in courses},
+                    {"BCA", "BSc IT", "MCA", "BTech Computer Science", "BBA", "MCom"},
+                )
+                self.assertEqual(student_count, 0)
+                self.assertTrue(
+                    {"admins", "courses", "students", "teachers", "timetable"}
+                    .issubset(tables)
+                )
+                initialize_database()
+                with database_connection() as connection:
+                    repeated_course_sequence = connection.execute(
+                        "SELECT seq FROM sqlite_sequence WHERE name = 'courses'"
+                    ).fetchone()[0]
+                self.assertEqual(course_sequence, repeated_course_sequence)
+            finally:
+                database.DATABASE = original_database
+
     def setUp(self):
         self.temp_directory = tempfile.TemporaryDirectory()
         self.original_database = database.DATABASE
@@ -116,6 +157,9 @@ class StudentHubAppTests(unittest.TestCase):
 
     def test_csrf_is_required_and_private_pages_require_login(self):
         self.assertEqual(self.client.get("/about").status_code, 200)
+        api_response = self.client.get("/api/students")
+        self.assertEqual(api_response.status_code, 401)
+        self.assertEqual(api_response.get_json(), {"error": "Authentication required."})
         response = self.client.get("/students")
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "/login")
@@ -172,6 +216,27 @@ class StudentHubAppTests(unittest.TestCase):
         self.assertEqual(listing.status_code, 200)
         self.assertIn(b"Jamie Example", listing.data)
         self.assertIn(b"1 record", listing.data)
+
+        api_response = self.client.get(
+            "/api/students?q=Jamie&status=Active&course_id=1"
+        )
+        self.assertEqual(api_response.status_code, 200)
+        self.assertEqual(api_response.mimetype, "application/json")
+        api_data = api_response.get_json()
+        self.assertEqual(api_data["pagination"]["total"], 1)
+        self.assertEqual(api_data["pagination"]["page"], 1)
+        self.assertEqual(
+            api_data["students"],
+            [
+                {
+                    "id": 1,
+                    "name": "Jamie Example",
+                    "email": "jamie@example.test",
+                    "status": "Active",
+                    "course": "BCA",
+                }
+            ],
+        )
 
         with database_connection() as connection:
             student_id = connection.execute(

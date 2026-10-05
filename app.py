@@ -13,6 +13,7 @@ from flask import (
     Flask,
     abort,
     flash,
+    jsonify,
     make_response,
     redirect,
     render_template,
@@ -22,7 +23,7 @@ from flask import (
 )
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from database import get_db_connection
+from database import get_db_connection, initialize_database
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32)
@@ -37,6 +38,8 @@ if not os.environ.get("FLASK_SECRET_KEY"):
         "FLASK_SECRET_KEY is not set; sessions will not survive application restarts."
     )
 
+initialize_database()
+
 
 @contextmanager
 def database_connection():
@@ -47,44 +50,6 @@ def database_connection():
         connection.close()
 
 
-def initialize_auth_table():
-    with database_connection() as connection:
-        connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS admins (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT NOT NULL UNIQUE,
-                password_hash TEXT NOT NULL
-            );
-            """
-        )
-        connection.commit()
-
-
-initialize_auth_table()
-
-def initialize_teacher_table():
-    with database_connection() as connection:
-        connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS teachers (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                email TEXT NOT NULL UNIQUE,
-                phone TEXT,
-                course_id INTEGER NOT NULL,
-                qualification TEXT,
-                hire_date TEXT NOT NULL,
-                status TEXT NOT NULL DEFAULT 'Active',
-                FOREIGN KEY (course_id) REFERENCES courses(id)
-            )
-            """
-        )
-        connection.commit()
-
-
-initialize_teacher_table()
-
 WEEKDAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
 PERIODS = (
     {"number": 1, "start": "09:00", "end": "10:00"},
@@ -94,36 +59,6 @@ PERIODS = (
     {"number": 5, "start": "14:00", "end": "15:00"},
     {"number": 6, "start": "15:00", "end": "16:00"},
 )
-
-
-def initialize_timetable_table():
-    with database_connection() as connection:
-        connection.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS timetable (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                course_id INTEGER NOT NULL,
-                teacher_id INTEGER NOT NULL,
-                subject TEXT NOT NULL,
-                weekday TEXT NOT NULL
-                    CHECK (weekday IN ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday')),
-                period INTEGER NOT NULL CHECK (period BETWEEN 1 AND 6),
-                FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE RESTRICT,
-                FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE RESTRICT,
-                UNIQUE (course_id, weekday, period),
-                UNIQUE (teacher_id, weekday, period)
-            );
-
-            CREATE TABLE IF NOT EXISTS timetable_seed (
-                id INTEGER PRIMARY KEY CHECK (id = 1),
-                seeded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-            );
-            """
-        )
-        connection.commit()
-
-
-initialize_timetable_table()
 
 
 def assign_teachers_to_sessions(sessions, teachers):
@@ -783,6 +718,58 @@ def students():
         page=page,
         total_pages=total_pages,
         total=total,
+    )
+
+
+@app.route("/api/students")
+def students_api():
+    if "admin_id" not in session:
+        return jsonify(error="Authentication required."), 401
+
+    search, status, course_id, where_clause, parameters = get_student_filters(
+        request.args
+    )
+    page = max(request.args.get("page", 1, type=int) or 1, 1)
+    per_page = 10
+
+    with database_connection() as connection:
+        total = connection.execute(
+            f"""
+            SELECT COUNT(*)
+            FROM students
+            INNER JOIN courses ON students.course_id = courses.id
+            {where_clause}
+            """,
+            parameters,
+        ).fetchone()[0]
+
+        total_pages = max(1, (total + per_page - 1) // per_page)
+        page = min(page, total_pages)
+        student_list = connection.execute(
+            f"""
+            SELECT
+                students.id,
+                students.name,
+                students.email,
+                students.status,
+                courses.name AS course
+            FROM students
+            INNER JOIN courses ON students.course_id = courses.id
+            {where_clause}
+            ORDER BY students.name COLLATE NOCASE, students.id
+            LIMIT ? OFFSET ?
+            """,
+            [*parameters, per_page, (page - 1) * per_page],
+        ).fetchall()
+
+    return jsonify(
+        students=[dict(student) for student in student_list],
+        pagination={
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "total_pages": total_pages,
+        },
     )
 
 
