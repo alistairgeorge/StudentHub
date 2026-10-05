@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit student" if editing else "Add student" }} | EduTrack{% endblock %}
+{% block content %}
+    <section class="panel form-panel">
+        <div class="page-heading">
+            <div><p class="eyebrow">STUDENT RECORD</p><h1>{{ "Edit student" if editing else "Add student" }}</h1></div>
+            <a class="text-link" href="{{ url_for('student_detail', student_id=student['id']) if editing else url_for('students') }}">Cancel</a>
+        </div>
+
+        {% if errors %}
+        <div class="form-errors" role="alert">
+            <p>Please review the following:</p>
+            <ul>{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
+        </div>
+        {% endif %}
+
+        <form class="record-form" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <label>Full name
+                <input name="name" value="{{ form_data['name'] }}" maxlength="150" required autocomplete="name">
+            </label>
+            <label>Email
+                <input type="email" name="email" value="{{ form_data['email'] }}" maxlength="254" required autocomplete="email">
+            </label>
+            <label>Phone
+                <input type="tel" name="phone" value="{{ form_data['phone'] }}" maxlength="30" autocomplete="tel">
+            </label>
+            <label>Gender
+                <input name="gender" value="{{ form_data['gender'] }}" maxlength="50">
+            </label>
+            <label>Course
+                <select name="course_id" required>
+                    <option value="">Select a course</option>
+                    {% for course in courses %}
+                    <option value="{{ course['id'] }}" {% if form_data['course_id']|int == course['id'] %}selected{% endif %}>{{ course["name"] }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Status
+                <select name="status" required>
+                    <option value="Active" {% if form_data['status'] == "Active" %}selected{% endif %}>Active</option>
+                    <option value="Inactive" {% if form_data['status'] == "Inactive" %}selected{% endif %}>Inactive</option>
+                </select>
+            </label>
+            <label>Date of birth
+                <input type="date" name="date_of_birth" value="{{ form_data['date_of_birth'] }}">
+            </label>
+            <label>Enrollment date
+                <input type="date" name="enrollment_date" value="{{ form_data['enrollment_date'] }}" required>
+            </label>
+            <div class="form-actions">
+                <button class="button" type="submit">{{ "Save changes" if editing else "Add student" }}</button>
+                <a class="button button-secondary" href="{{ url_for('student_detail', student_id=student['id']) if editing else url_for('students') }}">Cancel</a>
+            </div>
+        </form>
+    </section>
+{% endblock %}

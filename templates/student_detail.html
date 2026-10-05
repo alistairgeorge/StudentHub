@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ student["name"] }} | EduTrack{% endblock %}
+{% block content %}
+    <section class="panel">
+        <div class="page-heading">
+            <div><p class="eyebrow">STUDENT PROFILE</p><h1>{{ student["name"] }}</h1>
+                <span class="status status-{{ student['status']|lower }}">{{ student["status"] }}</span>
+            </div>
+            <div class="button-group">
+                <a class="button" href="{{ url_for('edit_student', student_id=student['id']) }}">Edit student</a>
+                <form method="post" action="{{ url_for('delete_student', student_id=student['id']) }}" data-confirm="Delete this student record? This cannot be undone.">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button class="button button-danger" type="submit">Delete</button>
+                </form>
+            </div>
+        </div>
+        <dl class="detail-grid">
+            <div><dt>Email</dt><dd><a href="mailto:{{ student['email'] }}">{{ student["email"] }}</a></dd></div>
+            <div><dt>Phone</dt><dd>{{ student["phone"] or "Not provided" }}</dd></div>
+            <div><dt>Course</dt><dd>{{ student["course"] }}</dd></div>
+            <div><dt>Gender</dt><dd>{{ student["gender"] or "Not provided" }}</dd></div>
+            <div><dt>Date of birth</dt><dd>{{ student["date_of_birth"] or "Not provided" }}</dd></div>
+            <div><dt>Enrollment date</dt><dd>{{ student["enrollment_date"] or "Not provided" }}</dd></div>
+            <div><dt>Student ID</dt><dd>{{ student["id"] }}</dd></div>
+        </dl>
+        <a class="text-link back-link" href="{{ url_for('students') }}">Back to students</a>
+    </section>
+{% endblock %}

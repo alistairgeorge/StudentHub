@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}About | EduTrack{% endblock %}
+{% block content %}
+    <section class="panel">
+        <p class="eyebrow">ABOUT THE PROJECT</p>
+        <h1>About EduTrack</h1>
+        <p class="about-copy">
+            EduTrack is an education administration system designed to help institutes
+            organize student and teacher information in one place. Administrators can
+            maintain records, search and filter directories, and review enrollment summaries.
+        </p>
+        <p class="about-copy">
+            This project uses Python, Flask, SQLite, HTML, CSS, and JavaScript.
+        </p>
+        {% if not session.get("admin_id") %}
+        <a class="button" href="{{ url_for('login') }}">Admin sign in</a>
+        {% endif %}
+    </section>
+{% endblock %}

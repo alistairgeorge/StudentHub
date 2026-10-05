@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Timetable | EduTrack{% endblock %}
+{% block content %}
+    <section class="panel">
+        <div class="page-heading">
+            <div><p class="eyebrow">WEEKLY SCHEDULE</p><h1>Class timetable</h1>
+                <p>Monday to Friday · Six one-hour periods · Lunch break 12:00–13:00</p>
+            </div>
+        </div>
+
+        <form class="filters" method="get" action="{{ url_for('timetable') }}">
+            <label>Course
+                <select name="course_id" required>
+                    {% for course in courses %}
+                    <option value="{{ course['id'] }}" {% if course_id == course['id'] %}selected{% endif %}>{{ course["name"] }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button class="button" type="submit">View course</button>
+        </form>
+
+        {% if course_id %}
+        <div class="table-wrap timetable-wrap">
+            <table class="timetable-table">
+                <thead>
+                    <tr>
+                        <th>Day</th>
+                        {% for period in periods %}
+                        <th>Period {{ period["number"] }}<br>{{ period["start"] }}–{{ period["end"] }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for weekday in weekdays %}
+                    <tr>
+                        <th scope="row">{{ weekday }}</th>
+                        {% for period in periods %}
+                        {% set lesson = schedule.get((weekday, period["number"])) %}
+                        <td>
+                            {% if lesson %}
+                            <div class="timetable-lesson">
+                                <strong>{{ lesson["subject"] }}</strong>
+                                <span>{{ lesson["teacher"] }}</span>
+                                <form method="post" action="{{ url_for('delete_timetable_entry', entry_id=lesson['id']) }}" data-confirm="Remove this lecture from the timetable?">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button class="timetable-remove" type="submit">Remove</button>
+                                </form>
+                            </div>
+                            {% else %}
+                            <span class="timetable-empty">Free</span>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <section class="timetable-editor" aria-labelledby="add-lecture-title">
+            <h2 id="add-lecture-title">Add a lecture</h2>
+            <p class="muted">A course and a teacher can each have only one lecture in a time slot. Inactive teachers cannot be assigned.</p>
+            <form class="record-form timetable-form" method="post" action="{{ url_for('timetable', course_id=course_id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <label>Course
+                    <select name="course_id" required>
+                        {% for course in courses %}
+                        <option value="{{ course['id'] }}" {% if course_id == course['id'] %}selected{% endif %}>{{ course["name"] }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Subject
+                    <input name="subject" maxlength="120" required placeholder="e.g. Artificial Intelligence">
+                </label>
+                <label>Teacher
+                    <select name="teacher_id" required>
+                        <option value="">Select a teacher</option>
+                        {% for teacher in teachers %}
+                        <option value="{{ teacher['id'] }}">{{ teacher["name"] }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Weekday
+                    <select name="weekday" required>
+                        {% for weekday in weekdays %}
+                        <option value="{{ weekday }}">{{ weekday }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Period
+                    <select name="period" required>
+                        {% for period in periods %}
+                        <option value="{{ period['number'] }}">Period {{ period["number"] }} · {{ period["start"] }}–{{ period["end"] }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <button class="button" type="submit">Add to timetable</button>
+            </form>
+            {% if not teachers %}
+            <p class="empty-state">Add an active teacher before scheduling a lecture.</p>
+            {% endif %}
+        </section>
+        {% else %}
+        <p class="empty-state">Add courses before creating a timetable.</p>
+        {% endif %}
+    </section>
+{% endblock %}

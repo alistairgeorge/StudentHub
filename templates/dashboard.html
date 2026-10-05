@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | EduTrack{% endblock %}
+{% block content %}
+    <section class="page-heading">
+        <div><p class="eyebrow">OVERVIEW</p><h1>Dashboard</h1></div>
+        <a class="button" href="{{ url_for('export_students') }}">Export students CSV</a>
+    </section>
+
+    <section class="cards" aria-label="Student, teacher, and course statistics">
+        <div class="card"><h2>{{ total_students }}</h2><p>Total Students</p></div>
+        <div class="card"><h2>{{ active_students }}</h2><p>Active Students</p></div>
+        <div class="card"><h2>{{ inactive_students }}</h2><p>Inactive Students</p></div>
+        <div class="card"><h2>{{ total_teachers }}</h2><p>Total Teachers</p></div>
+        <div class="card"><h2>{{ active_teachers }}</h2><p>Active Teachers</p></div>
+        <div class="card"><h2>{{ inactive_teachers }}</h2><p>Inactive Teachers</p></div>
+        <div class="card"><h2>{{ total_courses }}</h2><p>Courses</p></div>
+    </section>
+
+    <section class="panel">
+        <div class="section-heading">
+            <h2>Student management</h2>
+            <div class="button-group">
+                <a class="button button-secondary" href="{{ url_for('students') }}">View students</a>
+                <a class="button" href="{{ url_for('create_student') }}">Add student</a>
+            </div>
+        </div>
+        <p class="muted">Manage student profiles, course enrolments, and active status.</p>
+    </section>
+
+    <section class="panel">
+        <div class="section-heading">
+            <h2>Teacher management</h2>
+            <div class="button-group">
+                <a class="button button-secondary" href="{{ url_for('teachers') }}">View teachers</a>
+                <a class="button" href="{{ url_for('create_teacher') }}">Add teacher</a>
+            </div>
+        </div>
+        <p class="muted">Manage teacher contact details, qualifications, course assignments, hire dates, and status.</p>
+    </section>
+
+    <section class="panel">
+        <div class="section-heading">
+            <h2>Class timetable</h2>
+            <a class="button" href="{{ url_for('timetable') }}">View timetable</a>
+        </div>
+        <p class="muted">Plan weekly lectures and prevent course or teacher scheduling conflicts.</p>
+    </section>
+
+    <div class="dashboard-grid">
+        <section class="panel">
+            <h2>Enrollments over the last six months</h2>
+            <div class="bar-chart" aria-label="Monthly enrollments">
+                {% for month in enrollment_stats %}
+                <div class="bar-row">
+                    <span class="bar-label">{{ month["label"] }}</span>
+                    <div class="bar-track"><div class="bar-fill" style="width: {{ month['width'] }}%"></div></div>
+                    <strong>{{ month["total"] }}</strong>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        <section class="panel">
+            <h2>Course distribution</h2>
+            <div class="bar-chart">
+                {% for course in course_stats %}
+                <div class="bar-row">
+                    <span class="bar-label">{{ course["course"] }}</span>
+                    <div class="bar-track"><div class="bar-fill bar-fill-alt" style="width: {{ course['width'] }}%"></div></div>
+                    <strong>{{ course["total"] }}</strong>
+                </div>
+                {% else %}
+                <p class="empty-state">No courses available.</p>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+
+    <section class="panel data-panel">
+        <div class="section-heading"><h2>Recently added students</h2><a href="{{ url_for('students') }}">View all</a></div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>ID</th><th>Name</th><th>Course</th><th>Status</th></tr></thead>
+                <tbody>
+                    {% for student in recent_students %}
+                    <tr>
+                        <td>{{ student["id"] }}</td>
+                        <td><a href="{{ url_for('student_detail', student_id=student['id']) }}">{{ student["name"] }}</a></td>
+                        <td>{{ student["course"] }}</td>
+                        <td><span class="status status-{{ student['status']|lower }}">{{ student["status"] }}</span></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="empty-state">No students found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+{% endblock %}

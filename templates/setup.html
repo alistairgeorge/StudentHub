@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Create admin account | EduTrack{% endblock %}
+{% block content %}
+    <section class="panel auth-panel">
+        <p class="eyebrow">FIRST-TIME SETUP</p>
+        <h1>Create admin account</h1>
+        <p class="muted">This one-time setup is available only until the first admin account is created. Use a unique password with at least 12 characters.</p>
+        {% if errors %}
+        <div class="form-errors" role="alert">
+            <p>Please review the following:</p>
+            <ul>{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
+        </div>
+        {% endif %}
+        <form class="record-form" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <label>Username
+                <input name="username" maxlength="80" required autocomplete="username" value="{{ request.form.get('username', '') }}">
+            </label>
+            <label for="setup-password">Password</label>
+            <div class="password-control">
+                <input id="setup-password" type="password" name="password" minlength="12" required autocomplete="new-password">
+                <button class="password-toggle" type="button" aria-controls="setup-password" aria-pressed="false">Show</button>
+            </div>
+            <label for="setup-confirm-password">Confirm password</label>
+            <div class="password-control">
+                <input id="setup-confirm-password" type="password" name="confirm_password" minlength="12" required autocomplete="new-password">
+                <button class="password-toggle" type="button" aria-controls="setup-confirm-password" aria-pressed="false">Show</button>
+            </div>
+            <button class="button" type="submit">Create admin account</button>
+        </form>
+    </section>
+{% endblock %}

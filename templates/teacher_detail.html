@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ teacher["name"] }} | EduTrack{% endblock %}
+{% block content %}
+    <section class="panel">
+        <div class="page-heading">
+            <div><p class="eyebrow">TEACHER PROFILE</p><h1>{{ teacher["name"] }}</h1>
+                <span class="status status-{{ teacher['status']|lower }}">{{ teacher["status"] }}</span>
+            </div>
+            <div class="button-group">
+                <a class="button" href="{{ url_for('edit_teacher', teacher_id=teacher['id']) }}">Edit teacher</a>
+                <form method="post" action="{{ url_for('delete_teacher', teacher_id=teacher['id']) }}" data-confirm="Delete this teacher record? This cannot be undone.">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button class="button button-danger" type="submit">Delete</button>
+                </form>
+            </div>
+        </div>
+        <dl class="detail-grid">
+            <div><dt>Email</dt><dd><a href="mailto:{{ teacher['email'] }}">{{ teacher["email"] }}</a></dd></div>
+            <div><dt>Phone</dt><dd>{{ teacher["phone"] or "Not provided" }}</dd></div>
+            <div><dt>Course / department</dt><dd>{{ teacher["course"] }}</dd></div>
+            <div><dt>Qualification</dt><dd>{{ teacher["qualification"] or "Not provided" }}</dd></div>
+            <div><dt>Hire date</dt><dd>{{ teacher["hire_date"] }}</dd></div>
+            <div><dt>Teacher ID</dt><dd>{{ teacher["id"] }}</dd></div>
+        </dl>
+        <a class="text-link back-link" href="{{ url_for('teachers') }}">Back to teachers</a>
+    </section>
+{% endblock %}
